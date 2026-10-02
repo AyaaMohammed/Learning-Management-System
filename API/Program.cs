@@ -56,8 +56,8 @@ namespace API
                             .ReadFrom.Configuration(context.Configuration)
                             .Enrich.FromLogContext());
 
-           // builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-           // builder.Services.AddProblemDetails();
+           builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+           builder.Services.AddProblemDetails();
 
 var jwtSettings = builder.Configuration
     .GetSection("JwtSettings");
@@ -96,7 +96,7 @@ var jwtSettings = builder.Configuration
 
             app.UseMiddleware<CorrelationIdEnricherMiddleware>();
 
-            //app.UseExceptionHandler();
+            app.UseExceptionHandler();
 
             app.UseSerilogRequestLogging();
 
