@@ -1,4 +1,6 @@
-﻿namespace API.Middleware
+﻿using Serilog.Context;
+
+namespace API.Middleware
 {
     public class CorrelationIdEnricherMiddleware
     {
@@ -13,12 +15,15 @@
 
         public async Task InvokeAsync(HttpContext context)
         {
-            var correlationId = context.Request.Headers.TryGetValue(CorrelationIdHeader, out var value)
-                                                ? value.ToString() : Guid.NewGuid().ToString();
+            var correlationId = context.Request.Headers.TryGetValue(CorrelationIdHeader,out var value)
+                                                        ? value.ToString() : Guid.NewGuid().ToString();
 
             context.Response.Headers[CorrelationIdHeader] = correlationId;
 
-            await _next(context);
+            using (LogContext.PushProperty("CorrelationId", correlationId))
+            {
+                await _next(context);
+            }
         }
     }
 }

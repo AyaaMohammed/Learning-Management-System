@@ -1,12 +1,9 @@
-﻿using Infrastructure.Context;
+﻿using Application.Interfaces.UserService;
+using Infrastructure.Context;
+using Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Infrastructure.Extensions
 {
@@ -19,6 +16,10 @@ namespace Infrastructure.Extensions
             services.AddDbContext<LMSDbContext>(options =>
                 options.UseSqlServer(
                     configuration.GetConnectionString("DefaultConnection")));
+
+            services.AddHttpContextAccessor();
+
+            services.AddScoped<IUserService, UserService>();
 
             return services;
         }

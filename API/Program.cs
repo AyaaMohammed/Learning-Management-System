@@ -1,4 +1,6 @@
+using API.Middleware;
 using Infrastructure.Extensions;
+using Serilog;
 
 namespace API
 {
@@ -10,12 +12,23 @@ namespace API
 
             // Add services to the container.
 
-            builder.Services.AddControllers();
+            builder.Services.AddControllers(options =>
+            {
+                options.Filters.Add<ValidationFilter>();
+            });
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
             builder.Services.AddInfrastructure(builder.Configuration);
+
+            builder.Host.UseSerilog((context, configuration) =>
+                        configuration
+                            .ReadFrom.Configuration(context.Configuration)
+                            .Enrich.FromLogContext());
+
+            builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+            builder.Services.AddProblemDetails();
 
             var app = builder.Build();
 
@@ -27,6 +40,12 @@ namespace API
             }
 
             app.UseHttpsRedirection();
+
+            app.UseMiddleware<CorrelationIdEnricherMiddleware>();
+
+            app.UseExceptionHandler();
+
+            app.UseSerilogRequestLogging();
 
             app.UseAuthorization();
 
