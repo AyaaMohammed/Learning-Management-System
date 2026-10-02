@@ -13,8 +13,7 @@ namespace Infrastructure.Services
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public UserService(
-            IHttpContextAccessor httpContextAccessor)
+        public UserService(IHttpContextAccessor httpContextAccessor)
         {
             _httpContextAccessor = httpContextAccessor;
         }

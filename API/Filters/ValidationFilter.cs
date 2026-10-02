@@ -34,13 +34,12 @@ public sealed class ValidationFilter : IAsyncActionFilter
                         x => x.Key,
                         x => x.Select(e => e.ErrorMessage).ToArray());
 
-                context.Result =
-                    new BadRequestObjectResult(
-                        new ValidationProblemDetails(errors)
-                        {
-                            Status = StatusCodes.Status400BadRequest,
-                            Title = "Validation failed."
-                        });
+                context.Result = new BadRequestObjectResult(new
+                {
+                    code = StatusCodes.Status400BadRequest,
+                    message = "Validation failed.",
+                    errors
+                });
 
                 return;
             }

@@ -1,6 +1,7 @@
 ﻿using Application.Interfaces.Repositories;
 using Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Infrastructure.Repositories
 {
@@ -19,7 +20,10 @@ namespace Infrastructure.Repositories
         {
             return await _dbSet.FindAsync(id);
         }
-
+        public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate) 
+        { 
+            return await _context.Set<T>().FirstOrDefaultAsync(predicate); 
+        }
         public async Task<T> AddAsync(T entity)
         {
             await _dbSet.AddAsync(entity);

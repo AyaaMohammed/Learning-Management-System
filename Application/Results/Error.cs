@@ -6,8 +6,5 @@ using System.Threading.Tasks;
 
 namespace Application.Results
 {
-    public sealed record Error(
-        string Code,
-        string Message,
-        ErrorType Type);
+    public sealed record Error(string Message,ErrorType Type);
 }

@@ -23,6 +23,30 @@ namespace Infrastructure.Configurations
 
             builder.Property(x => x.CreatedAt)
                 .IsRequired();
+
+            builder.HasData(
+                    new Tenant
+                    {
+                        Id = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                        Name = "Tenant 1",
+                        CreatedAt = new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc),
+                        UpdatedAt = new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc)
+                    },
+                    new Tenant
+                    {
+                        Id = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                        Name = "Tenant 2",
+                        CreatedAt = new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc),
+                        UpdatedAt = new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc)
+                    },
+                    new Tenant
+                    {
+                        Id = Guid.Parse("33333333-3333-3333-3333-333333333333"),
+                        Name = "Tenant 3",
+                        CreatedAt = new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc),
+                        UpdatedAt = new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc)
+                    }
+                );
         }
     }
 }

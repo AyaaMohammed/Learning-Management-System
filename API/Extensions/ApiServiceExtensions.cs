@@ -1,4 +1,6 @@
-﻿using Application.Validators;
+﻿using Application.Interfaces.Service;
+using Application.Services;
+using Application.Validators;
 using FluentValidation;
 
 namespace API.Extensions
@@ -9,6 +11,8 @@ namespace API.Extensions
         {
             // FluentValidation
             services.AddValidatorsFromAssemblyContaining<TestValidator>();
+
+            services.AddScoped<IAuthService, AuthService>();
             return services;
         }
     }

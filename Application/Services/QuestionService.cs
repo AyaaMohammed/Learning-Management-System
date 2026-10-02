@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace Application.Services
 {
-    public class QuestionService : IQuestionService
+    public class QuestionService  
     {
         private readonly IGenericRepositoryAsync<Question> _questionRepository;
         private readonly IGenericRepositoryAsync<QuestionChoice> _choiceRepository;
@@ -28,12 +28,5 @@ namespace Application.Services
             _userService = userService;
         }
 
-        public async Task<Result<Guid>> AddAsync(CreateQuestionRequest request)
-        {
-            var tenantId = _userService.TenantId;
-            var userId = _userService.UserId;
-
-            // باقي business logic
-        }
     }
 }

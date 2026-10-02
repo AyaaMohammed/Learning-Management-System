@@ -19,6 +19,8 @@ namespace Domain.Entities
 
         public string PasswordHash { get; set; } = string.Empty;
 
+        public string PasswordSalt { get; set; } = string.Empty;
+
         public UserRole Role { get; set; }
 
         public bool IsActive { get; set; } = true;
