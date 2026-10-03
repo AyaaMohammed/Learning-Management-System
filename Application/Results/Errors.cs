@@ -8,7 +8,7 @@ namespace Application.Results
 {
     public static class Errors
     {
-        public static class Question
+        public static class QuestionError
         {
             public static Error NotFound =>
                 new(
@@ -26,7 +26,7 @@ namespace Application.Results
                     ErrorType.Validation);
         }
 
-        public static class Quiz
+        public static class QuizError
         {
             public static Error NotFound =>
                 new(
@@ -44,7 +44,7 @@ namespace Application.Results
                     ErrorType.Validation);
         }
 
-        public static class Attempt
+        public static class AttemptError
         {
             public static Error NotFound =>
                 new(

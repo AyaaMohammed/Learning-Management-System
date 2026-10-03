@@ -13,6 +13,8 @@ namespace Application.Interfaces.Repositories
         Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate,params Expression<Func<T, object>>[] includes);
 
         Task<List<T>> GetAllAsync(Expression<Func<T, bool>>? predicate = null,params Expression<Func<T, object>>[] includes);
+
+        Task<int> CountAsync(Expression<Func<T, bool>> predicate);
         Task AddRangeAsync(ICollection<T> entities);
 
         Task UpdateAsync(T entity);

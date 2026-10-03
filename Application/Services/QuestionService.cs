@@ -137,8 +137,7 @@ namespace Application.Services
         private Question CreateQuestion(QuestionRequest request, Guid? previousQuestionId = null)
         {
             var now = DateTime.UtcNow;
-
-            return new Question
+            var question = new Question
             {
                 Id = Guid.NewGuid(),
 
@@ -154,19 +153,24 @@ namespace Application.Services
                 PreviousQuestionId = previousQuestionId,
 
                 CreatedAt = now,
-                UpdatedAt = null,
-
-                Choices = request.Choices
-                    .Select(choiceRequest => new QuestionChoice
-                    {
-                        Id = Guid.NewGuid(),
-                        Text = choiceRequest.Text,
-                        IsCorrect = choiceRequest.IsCorrect,
-                        CreatedAt = now,
-                        UpdatedAt = null
-                    })
-                    .ToList()
+                UpdatedAt = null
             };
+
+            question.Choices = request.Choices
+                .Select(choiceRequest => new QuestionChoice
+                {
+                    Id = Guid.NewGuid(),
+                    QuestionId = question.Id,
+
+                    Text = choiceRequest.Text,
+                    IsCorrect = choiceRequest.IsCorrect,
+
+                    CreatedAt = now,
+                    UpdatedAt = null
+                })
+                .ToList();
+
+            return question;
         }
 
     }
