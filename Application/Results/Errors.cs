@@ -77,7 +77,12 @@ namespace Application.Results
                 new(
                     "Selected choice does not belong to the question.",
                     ErrorType.Validation);
-        }
+
+            public static Error ConcurrencyConflict =>
+                new(
+                    "The quiz attempt was modified by another request.",
+                    ErrorType.Conflict);
+                    }
 
     }
 }

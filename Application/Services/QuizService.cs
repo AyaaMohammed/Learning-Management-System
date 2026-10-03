@@ -70,13 +70,12 @@ namespace Application.Services
             var quizzes = await _unitOfWork.Quizzes.GetAllAsync(
                 x => x.TenantId == tenantId && x.IsActive,
                 x => x.QuizQuestions,
-                x => x.Attempts);
+                x => x.Attempts.Where(a => a.StudentId == studentId));
 
             var availableQuizzes = quizzes
                 .Where(quiz =>
                 {
-                    var attemptsUsed = quiz.Attempts
-                        .Count(x => x.StudentId == studentId);
+                    var attemptsUsed = quiz.Attempts.Count;
 
                     // Unlimited attempts
                     if (!quiz.MaxAttempts.HasValue)
@@ -87,8 +86,7 @@ namespace Application.Services
                 })
                 .Select(quiz =>
                 {
-                    var attemptsUsed = quiz.Attempts
-                        .Count(x => x.StudentId == studentId);
+                    var attemptsUsed = quiz.Attempts.Count;
 
                     return new AvailableQuizResponseDto
                     {
