@@ -1,23 +1,36 @@
 ﻿using Application.DTOs.Questions;
 using Application.Interfaces.Repositories;
+using Application.Interfaces.UnitOfWork;
 using Application.Interfaces.UserService;
 using Application.Results;
 using Application.Services;
 using Domain.Entities;
 using Moq;
+using System.Linq.Expressions;
 
 namespace Application.Tests;
 
 public class QuestionServiceTests
 {
-    private readonly Mock<IGenericRepositoryAsync<Question>> _questionRepositoryMock;
-    private readonly Mock<IGenericRepositoryAsync<QuestionChoice>> _choiceRepositoryMock;
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
+
+    private readonly Mock<IGenericRepositoryAsync<Question>>
+        _questionRepositoryMock;
+
+    private readonly Mock<IGenericRepositoryAsync<QuestionChoice>>
+        _choiceRepositoryMock;
+
     private readonly Mock<IUserService> _userServiceMock;
 
     private readonly QuestionService _questionService;
 
+    private readonly Guid _userId;
+    private readonly Guid _tenantId;
+
     public QuestionServiceTests()
     {
+        _unitOfWorkMock = new Mock<IUnitOfWork>();
+
         _questionRepositoryMock =
             new Mock<IGenericRepositoryAsync<Question>>();
 
@@ -27,17 +40,27 @@ public class QuestionServiceTests
         _userServiceMock =
             new Mock<IUserService>();
 
+        _userId = Guid.NewGuid();
+        _tenantId = Guid.NewGuid();
+
         _userServiceMock
             .Setup(x => x.UserId)
-            .Returns(Guid.NewGuid());
+            .Returns(_userId);
 
         _userServiceMock
             .Setup(x => x.TenantId)
-            .Returns(Guid.NewGuid());
+            .Returns(_tenantId);
+
+        _unitOfWorkMock
+            .SetupGet(x => x.Questions)
+            .Returns(_questionRepositoryMock.Object);
+
+        _unitOfWorkMock
+            .SetupGet(x => x.QuestionChoices)
+            .Returns(_choiceRepositoryMock.Object);
 
         _questionService = new QuestionService(
-            _questionRepositoryMock.Object,
-            _choiceRepositoryMock.Object,
+            _unitOfWorkMock.Object,
             _userServiceMock.Object);
     }
 
@@ -80,6 +103,10 @@ public class QuestionServiceTests
             })
             .ReturnsAsync((Question question) => question);
 
+        _unitOfWorkMock
+            .Setup(x => x.SaveChangesAsync())
+            .ReturnsAsync(1);
+
         // Act
 
         var result = await _questionService.CreateAsync(request);
@@ -96,11 +123,11 @@ public class QuestionServiceTests
             createdQuestion!.Text);
 
         Assert.Equal(
-            _userServiceMock.Object.TenantId,
+            _tenantId,
             createdQuestion.TenantId);
 
         Assert.Equal(
-            _userServiceMock.Object.UserId,
+            _userId,
             createdQuestion.CreatedByUserId);
 
         Assert.False(createdQuestion.IsDeleted);
@@ -116,7 +143,7 @@ public class QuestionServiceTests
             x => x.AddAsync(It.IsAny<Question>()),
             Times.Once);
 
-        _questionRepositoryMock.Verify(
+        _unitOfWorkMock.Verify(
             x => x.SaveChangesAsync(),
             Times.Once);
     }
@@ -131,17 +158,16 @@ public class QuestionServiceTests
     {
         // Arrange
 
-        var tenantId = _userServiceMock.Object.TenantId;
-
         var questions = new List<Question>
         {
             new()
             {
                 Id = Guid.NewGuid(),
-                TenantId = tenantId,
+                TenantId = _tenantId,
                 Text = "Question 1",
                 IsDeleted = false,
                 IsLocked = false,
+
                 Choices = new List<QuestionChoice>
                 {
                     new()
@@ -158,21 +184,23 @@ public class QuestionServiceTests
                     }
                 }
             },
+
             new()
             {
                 Id = Guid.NewGuid(),
-                TenantId = tenantId,
+                TenantId = _tenantId,
                 Text = "Question 2",
                 IsDeleted = false,
                 IsLocked = false,
+
                 Choices = new List<QuestionChoice>()
             }
         };
 
         _questionRepositoryMock
             .Setup(x => x.GetAllAsync(
-                It.IsAny<System.Linq.Expressions.Expression<Func<Question, bool>>>(),
-                It.IsAny<System.Linq.Expressions.Expression<Func<Question, object>>[]>()))
+                It.IsAny<Expression<Func<Question, bool>>>(),
+                It.IsAny<Expression<Func<Question, object>>[]>()))
             .ReturnsAsync(questions);
 
         // Act
@@ -192,10 +220,14 @@ public class QuestionServiceTests
             "Question 1",
             result.Value[0].Text);
 
+        Assert.Equal(
+            2,
+            result.Value[0].Choices.Count);
+
         _questionRepositoryMock.Verify(
             x => x.GetAllAsync(
-                It.IsAny<System.Linq.Expressions.Expression<Func<Question, bool>>>(),
-                It.IsAny<System.Linq.Expressions.Expression<Func<Question, object>>[]>()),
+                It.IsAny<Expression<Func<Question, bool>>>(),
+                It.IsAny<Expression<Func<Question, object>>[]>()),
             Times.Once);
     }
 
@@ -210,15 +242,15 @@ public class QuestionServiceTests
         // Arrange
 
         var questionId = Guid.NewGuid();
-        var tenantId = _userServiceMock.Object.TenantId;
 
         var question = new Question
         {
             Id = questionId,
-            TenantId = tenantId,
+            TenantId = _tenantId,
             Text = "What is .NET?",
             IsDeleted = false,
             IsLocked = false,
+
             Choices = new List<QuestionChoice>
             {
                 new()
@@ -238,8 +270,8 @@ public class QuestionServiceTests
 
         _questionRepositoryMock
             .Setup(x => x.FirstOrDefaultAsync(
-                It.IsAny<System.Linq.Expressions.Expression<Func<Question, bool>>>(),
-                It.IsAny<System.Linq.Expressions.Expression<Func<Question, object>>[]>()))
+                It.IsAny<Expression<Func<Question, bool>>>(),
+                It.IsAny<Expression<Func<Question, object>>[]>()))
             .ReturnsAsync(question);
 
         // Act
@@ -274,17 +306,16 @@ public class QuestionServiceTests
     {
         // Arrange
 
-        var questionId = Guid.NewGuid();
-
         _questionRepositoryMock
             .Setup(x => x.FirstOrDefaultAsync(
-                It.IsAny<System.Linq.Expressions.Expression<Func<Question, bool>>>(),
-                It.IsAny<System.Linq.Expressions.Expression<Func<Question, object>>[]>()))
+                It.IsAny<Expression<Func<Question, bool>>>(),
+                It.IsAny<Expression<Func<Question, object>>[]>()))
             .ReturnsAsync((Question?)null);
 
         // Act
 
-        var result = await _questionService.GetByIdAsync(questionId);
+        var result = await _questionService.GetByIdAsync(
+            Guid.NewGuid());
 
         // Assert
 
@@ -296,7 +327,7 @@ public class QuestionServiceTests
             result.Error.Type);
 
         Assert.Equal(
-            "Question not found.",
+            "Question was not found.",
             result.Error.Message);
     }
 
@@ -312,15 +343,14 @@ public class QuestionServiceTests
 
         var oldQuestionId = Guid.NewGuid();
 
-        var tenantId = _userServiceMock.Object.TenantId;
-
         var oldQuestion = new Question
         {
             Id = oldQuestionId,
-            TenantId = tenantId,
+            TenantId = _tenantId,
             Text = "Old Question",
             IsDeleted = false,
             IsLocked = false,
+
             Choices = new List<QuestionChoice>
             {
                 new()
@@ -336,6 +366,7 @@ public class QuestionServiceTests
         {
             Text = "Updated Question",
             ImageUrl = null,
+
             Choices = new List<QuestionChoiceRequest>
             {
                 new()
@@ -355,8 +386,12 @@ public class QuestionServiceTests
 
         _questionRepositoryMock
             .Setup(x => x.FirstOrDefaultAsync(
-                It.IsAny<System.Linq.Expressions.Expression<Func<Question, bool>>>()))
+                It.IsAny<Expression<Func<Question, bool>>>()))
             .ReturnsAsync(oldQuestion);
+
+        _questionRepositoryMock
+            .Setup(x => x.UpdateAsync(It.IsAny<Question>()))
+            .Returns(Task.CompletedTask);
 
         _questionRepositoryMock
             .Setup(x => x.AddAsync(It.IsAny<Question>()))
@@ -365,6 +400,10 @@ public class QuestionServiceTests
                 newQuestion = question;
             })
             .ReturnsAsync((Question question) => question);
+
+        _unitOfWorkMock
+            .Setup(x => x.SaveChangesAsync())
+            .ReturnsAsync(1);
 
         // Act
 
@@ -380,29 +419,22 @@ public class QuestionServiceTests
             Guid.Empty,
             result.Value);
 
-        // Old question should be locked
         Assert.True(oldQuestion.IsLocked);
 
-        // New question should exist
         Assert.NotNull(newQuestion);
 
-        // New question should have a different Id
         Assert.NotEqual(
             oldQuestionId,
             newQuestion!.Id);
 
-        // New question should point to old version
         Assert.Equal(
             oldQuestionId,
             newQuestion.PreviousQuestionId);
 
-        // New question should be unlocked
         Assert.False(newQuestion.IsLocked);
 
-        // New question should not be deleted
         Assert.False(newQuestion.IsDeleted);
 
-        // New question should contain updated data
         Assert.Equal(
             "Updated Question",
             newQuestion.Text);
@@ -411,7 +443,6 @@ public class QuestionServiceTests
             2,
             newQuestion.Choices.Count);
 
-        // Returned Id should be the new question Id
         Assert.Equal(
             newQuestion.Id,
             result.Value);
@@ -424,7 +455,7 @@ public class QuestionServiceTests
             x => x.AddAsync(It.IsAny<Question>()),
             Times.Once);
 
-        _questionRepositoryMock.Verify(
+        _unitOfWorkMock.Verify(
             x => x.SaveChangesAsync(),
             Times.Once);
     }
@@ -439,11 +470,10 @@ public class QuestionServiceTests
     {
         // Arrange
 
-        var questionId = Guid.NewGuid();
-
         var request = new QuestionRequest
         {
             Text = "Updated Question",
+
             Choices = new List<QuestionChoiceRequest>
             {
                 new()
@@ -461,13 +491,13 @@ public class QuestionServiceTests
 
         _questionRepositoryMock
             .Setup(x => x.FirstOrDefaultAsync(
-                It.IsAny<System.Linq.Expressions.Expression<Func<Question, bool>>>()))
+                It.IsAny<Expression<Func<Question, bool>>>()))
             .ReturnsAsync((Question?)null);
 
         // Act
 
         var result = await _questionService.UpdateAsync(
-            questionId,
+            Guid.NewGuid(),
             request);
 
         // Assert
@@ -480,7 +510,7 @@ public class QuestionServiceTests
             result.Error.Type);
 
         Assert.Equal(
-            "Question not found.",
+            "Question was not found.",
             result.Error.Message);
 
         _questionRepositoryMock.Verify(
@@ -491,7 +521,7 @@ public class QuestionServiceTests
             x => x.AddAsync(It.IsAny<Question>()),
             Times.Never);
 
-        _questionRepositoryMock.Verify(
+        _unitOfWorkMock.Verify(
             x => x.SaveChangesAsync(),
             Times.Never);
     }
@@ -511,7 +541,7 @@ public class QuestionServiceTests
         var question = new Question
         {
             Id = questionId,
-            TenantId = _userServiceMock.Object.TenantId,
+            TenantId = _tenantId,
             Text = "Question",
             IsDeleted = false,
             IsLocked = false
@@ -519,22 +549,29 @@ public class QuestionServiceTests
 
         _questionRepositoryMock
             .Setup(x => x.FirstOrDefaultAsync(
-                It.IsAny<System.Linq.Expressions.Expression<Func<Question, bool>>>()))
+                It.IsAny<Expression<Func<Question, bool>>>()))
             .ReturnsAsync(question);
+
+        _questionRepositoryMock
+            .Setup(x => x.UpdateAsync(It.IsAny<Question>()))
+            .Returns(Task.CompletedTask);
+
+        _unitOfWorkMock
+            .Setup(x => x.SaveChangesAsync())
+            .ReturnsAsync(1);
 
         // Act
 
-        var result = await _questionService.DeleteAsync(questionId);
+        var result = await _questionService.DeleteAsync(
+            questionId);
 
         // Assert
 
         Assert.True(result.IsSuccess);
         Assert.True(result.Value);
 
-        // Important: Soft delete
         Assert.True(question.IsDeleted);
 
-        // Should not be physically deleted
         _questionRepositoryMock.Verify(
             x => x.DeleteAsync(It.IsAny<Question>()),
             Times.Never);
@@ -543,7 +580,7 @@ public class QuestionServiceTests
             x => x.UpdateAsync(question),
             Times.Once);
 
-        _questionRepositoryMock.Verify(
+        _unitOfWorkMock.Verify(
             x => x.SaveChangesAsync(),
             Times.Once);
     }
@@ -558,16 +595,15 @@ public class QuestionServiceTests
     {
         // Arrange
 
-        var questionId = Guid.NewGuid();
-
         _questionRepositoryMock
             .Setup(x => x.FirstOrDefaultAsync(
-                It.IsAny<System.Linq.Expressions.Expression<Func<Question, bool>>>()))
+                It.IsAny<Expression<Func<Question, bool>>>()))
             .ReturnsAsync((Question?)null);
 
         // Act
 
-        var result = await _questionService.DeleteAsync(questionId);
+        var result = await _questionService.DeleteAsync(
+            Guid.NewGuid());
 
         // Assert
 
@@ -579,7 +615,7 @@ public class QuestionServiceTests
             result.Error.Type);
 
         Assert.Equal(
-            "Question not found.",
+            "Question was not found.",
             result.Error.Message);
 
         _questionRepositoryMock.Verify(
@@ -590,7 +626,7 @@ public class QuestionServiceTests
             x => x.DeleteAsync(It.IsAny<Question>()),
             Times.Never);
 
-        _questionRepositoryMock.Verify(
+        _unitOfWorkMock.Verify(
             x => x.SaveChangesAsync(),
             Times.Never);
     }

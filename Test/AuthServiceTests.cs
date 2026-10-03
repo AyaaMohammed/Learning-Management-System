@@ -2,31 +2,39 @@
 using Application.DTOs.Auth;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Service;
+using Application.Interfaces.UnitOfWork;
 using Application.Results;
 using Application.Services;
 using Domain.Common;
 using Domain.Entities;
 using Moq;
-using System.Numerics;
-using System.Reflection;
-using static System.Net.Mime.MediaTypeNames;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+
 
 namespace Application.Tests;
 
 public class AuthServiceTests
 {
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
     private readonly Mock<IGenericRepositoryAsync<User>> _userRepositoryMock;
     private readonly Mock<ITokenService> _tokenServiceMock;
     private readonly AuthService _authService;
 
     public AuthServiceTests()
     {
-        _userRepositoryMock = new Mock<IGenericRepositoryAsync<User>>();
-        _tokenServiceMock = new Mock<ITokenService>();
+        _unitOfWorkMock = new Mock<IUnitOfWork>();
+
+        _userRepositoryMock =
+            new Mock<IGenericRepositoryAsync<User>>();
+
+        _tokenServiceMock =
+            new Mock<ITokenService>();
+
+        _unitOfWorkMock
+            .SetupGet(x => x.Users)
+            .Returns(_userRepositoryMock.Object);
 
         _authService = new AuthService(
-            _userRepositoryMock.Object,
+            _unitOfWorkMock.Object,
             _tokenServiceMock.Object);
     }
 
