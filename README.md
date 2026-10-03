@@ -413,6 +413,18 @@ Main entities include:
 
 Relationships and constraints are configured using Entity Framework Core configurations.
 
+### Database Configuration
+
+Update the SQL Server connection string in `appsettings.json`:
+
+```json
+"ConnectionStrings": {
+  "DefaultConnection": "Server=YOUR_SERVER;Database=MiniLMS;Trusted_Connection=True;TrustServerCertificate=True;"
+}
+```
+
+Replace `YOUR_SERVER` with your SQL Server instance name.
+
 ## 12. Testing
 
 The application includes automated tests using xUnit.
