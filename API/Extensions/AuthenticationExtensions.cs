@@ -8,9 +8,9 @@ namespace API.Extensions
     {
         public static IServiceCollection AddJwtAuthentication(this IServiceCollection services,IConfiguration configuration)
         {
-            var issuer = configuration["Shared:Token:ISSUER"];
-            var audience = configuration["Shared:Token:AUDIENCE"];
-            var secretKey = configuration["Shared:Token:SECRETKEY"];
+            var issuer = configuration["JwtSettings:Issuer"];
+            var audience = configuration["JwtSettings:Audience"];
+            var secretKey = configuration["JwtSettings:SecretKey"];
 
             if (string.IsNullOrWhiteSpace(issuer))
             {

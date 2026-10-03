@@ -1,5 +1,6 @@
 ﻿using Application.Interfaces.Repositories;
 using Application.Interfaces.Service;
+using Application.Interfaces.UnitOfWork;
 using Application.Interfaces.UserService;
 using Infrastructure.Context;
 using Infrastructure.Repositories;
@@ -26,8 +27,8 @@ namespace Infrastructure.Extensions
             services.AddScoped(typeof(IGenericRepositoryAsync<>), typeof(GenericRepositoryAsync<>));
             services.AddScoped<IUserService, UserService>();
 
-            services.Configure<JwtSettings>(configuration.GetSection("JwtSettings")); 
-            
+            services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));
+            services.AddScoped<IUnitOfWork, Infrastructure.UnitOfWork.UnitOfWork>();
             services.AddScoped<ITokenService, JwtTokenService>();
 
             return services;

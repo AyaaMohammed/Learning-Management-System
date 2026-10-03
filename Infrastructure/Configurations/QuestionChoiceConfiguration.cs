@@ -1,4 +1,5 @@
 ﻿using Domain.Entities;
+using Infrastructure.Seeding;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System;
@@ -25,6 +26,8 @@ namespace Infrastructure.Configurations
                 .HasDefaultValue(false);
 
             builder.HasIndex(x => x.QuestionId);
+
+            builder.HasData(SeedData.QuestionChoices);
         }
     }
 }

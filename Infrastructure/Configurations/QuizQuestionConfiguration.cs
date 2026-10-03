@@ -1,4 +1,5 @@
 ﻿using Domain.Entities;
+using Infrastructure.Seeding;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System;
@@ -28,6 +29,8 @@ namespace Infrastructure.Configurations
                 .WithMany(x => x.QuizQuestions)
                 .HasForeignKey(x => x.QuestionId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasData(SeedData.QuizQuestions);
         }
     }
 }

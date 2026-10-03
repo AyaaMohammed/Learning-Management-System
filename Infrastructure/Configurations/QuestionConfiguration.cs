@@ -1,4 +1,5 @@
 ﻿using Domain.Entities;
+using Infrastructure.Seeding;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System;
@@ -49,6 +50,8 @@ namespace Infrastructure.Configurations
                 .WithOne(x => x.Question)
                 .HasForeignKey(x => x.QuestionId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasData(SeedData.Questions);
         }
     }
 }

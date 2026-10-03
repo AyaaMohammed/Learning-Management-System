@@ -1,5 +1,6 @@
 ﻿using Domain.Entities;
 using Domain.Enums;
+using Infrastructure.Seeding;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System;
@@ -44,37 +45,10 @@ namespace Infrastructure.Configurations
             builder.HasOne(x => x.Tenant)
                 .WithMany(x => x.Users)
                 .HasForeignKey(x => x.TenantId)
-                .OnDelete(DeleteBehavior.Restrict);
-            //Aya@123#
-            builder.HasData(
-                 new User
-                 {
-                     Id = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
-                     TenantId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
-                     Name = "admin",
-                     Email = "admin@tenant1.com",
-                     PasswordHash = "ECCXVLl1yRr/akfekaujGiWwjWD3QFa4m1ojq1fSZg4xMjM0",
-                     PasswordSalt = "1234",
-                     Role = UserRole.Admin,
-                     IsActive = true,
-                     CreatedAt = new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc),
-                     UpdatedAt = new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc)
-                 },
-                 //Password123
-                 new User
-                 {
-                     Id = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
-                     TenantId = Guid.Parse("22222222-2222-2222-2222-222222222222"),
-                     Name = "student",
-                     Email = "student@tenant2.com",
-                     PasswordHash = "MT6kNIiU0bP+QQQX4aWJIbIyXvYi5phudi0uwcmNAlIxMjM0",
-                     PasswordSalt = "1234",
-                     Role = UserRole.Student,
-                     IsActive = true,
-                     CreatedAt = new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc),
-                     UpdatedAt = new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc)
-                 }
-             );
+                .OnDelete(DeleteBehavior.Restrict); 
+            
+            builder.HasData(SeedData.Users);
+
         }
     }
 }
