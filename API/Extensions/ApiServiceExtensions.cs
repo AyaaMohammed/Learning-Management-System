@@ -14,7 +14,8 @@ namespace API.Extensions
             services.AddValidatorsFromAssemblyContaining<QuestionRequest>();
 
             services.AddScoped<IAuthService, AuthService>();
-
+            services.AddScoped<IQuizService, QuizService>();
+            services.AddScoped<IPerformanceService, PerformanceService>();
             services.AddScoped<IQuestionService, QuestionService>();
             return services;
         }
