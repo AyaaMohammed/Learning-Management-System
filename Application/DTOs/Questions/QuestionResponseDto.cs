@@ -6,19 +6,24 @@ using System.Threading.Tasks;
 
 namespace Application.DTOs.Questions
 {
-    public class QuestionRequest
+    public class QuestionResponseDto
     {
+        public Guid Id { get; set; }
+
         public string Text { get; set; } = string.Empty;
 
         public string? ImageUrl { get; set; }
 
-        public List<QuestionChoiceRequest> Choices { get; set; } = new();
-    }
+        public bool IsLocked { get; set; }
 
-    public class QuestionChoiceRequest
+        public List<ChoiceResponseDto> Choices { get; set; } = new();
+    }
+    public class ChoiceResponseDto
     {
+        public Guid Id { get; set; }
+
         public string Text { get; set; } = string.Empty;
 
         public bool IsCorrect { get; set; }
-    }    
+    }
 }

@@ -20,9 +20,32 @@ namespace Infrastructure.Repositories
         {
             return await _dbSet.FindAsync(id);
         }
-        public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate) 
-        { 
-            return await _context.Set<T>().FirstOrDefaultAsync(predicate); 
+        public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate,params Expression<Func<T, object>>[] includes)
+        {
+            IQueryable<T> query = _dbSet;
+
+            foreach (var include in includes)
+            {
+                query = query.Include(include);
+            }
+
+            return await query.FirstOrDefaultAsync(predicate);
+        }
+        public async Task<List<T>> GetAllAsync(Expression<Func<T, bool>>? predicate = null,params Expression<Func<T, object>>[] includes)
+        {
+            IQueryable<T> query = _dbSet;
+
+            if (predicate != null)
+            {
+                query = query.Where(predicate);
+            }
+
+            foreach (var include in includes)
+            {
+                query = query.Include(include);
+            }
+
+            return await query.ToListAsync();
         }
         public async Task<T> AddAsync(T entity)
         {

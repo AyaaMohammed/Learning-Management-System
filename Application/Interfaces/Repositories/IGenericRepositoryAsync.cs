@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Linq.Expressions;
 
 namespace Application.Interfaces.Repositories
 {
@@ -14,7 +9,10 @@ namespace Application.Interfaces.Repositories
         Task<T?> GetByIdAsync(int id);
 
         Task<T> AddAsync(T entity);
-        Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate);
+
+        Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate,params Expression<Func<T, object>>[] includes);
+
+        Task<List<T>> GetAllAsync(Expression<Func<T, bool>>? predicate = null,params Expression<Func<T, object>>[] includes);
         Task AddRangeAsync(ICollection<T> entities);
 
         Task UpdateAsync(T entity);

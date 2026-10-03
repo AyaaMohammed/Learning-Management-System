@@ -10,6 +10,14 @@ namespace Application.Interfaces.Service
 {
     public interface IQuestionService
     {
-        Task<Result<Guid>> AddAsync(CreateQuestionRequest request);
+        Task<Result<IReadOnlyList<QuestionResponseDto>>> GetAllAsync();
+
+        Task<Result<QuestionResponseDto>> GetByIdAsync(Guid id);
+
+        Task<Result<Guid>> CreateAsync(QuestionRequest request);
+
+        Task<Result<Guid>> UpdateAsync(Guid id, QuestionRequest request);
+
+        Task<Result<bool>> DeleteAsync(Guid id);
     }
 }
