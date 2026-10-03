@@ -124,7 +124,7 @@ namespace Infrastructure.Seeding
             {
                 Id = Admin2Id,
                 TenantId = Tenant2Id,
-                Name = "admin",
+                Name = "admin2",
                 Email = "admin2@tenant2.com",
                 PasswordHash =
                    "ECCXVLl1yRr/akfekaujGiWwjWD3QFa4m1ojq1fSZg4xMjM0",
@@ -139,7 +139,7 @@ namespace Infrastructure.Seeding
             {
                 Id = Student2Id,
                 TenantId = Tenant2Id,
-                Name = "student",
+                Name = "student2",
                 Email = "student2@tenant2.com",
                 PasswordHash =
                     "MT6kNIiU0bP+QQQX4aWJIbIyXvYi5phudi0uwcmNAlIxMjM0",
@@ -158,7 +158,7 @@ namespace Infrastructure.Seeding
             {
                 Id = Admin3Id,
                 TenantId = Tenant3Id,
-                Name = "admin",
+                Name = "admin3",
                 Email = "admin3@tenant3.com",
                 PasswordHash =
                     "ECCXVLl1yRr/akfekaujGiWwjWD3QFa4m1ojq1fSZg4xMjM0",
@@ -173,7 +173,7 @@ namespace Infrastructure.Seeding
             {
                 Id = Student3Id,
                 TenantId = Tenant3Id,
-                Name = "student",
+                Name = "student3",
                 Email = "student3@tenant3.com",
                 PasswordHash =
                     "MT6kNIiU0bP+QQQX4aWJIbIyXvYi5phudi0uwcmNAlIxMjM0",
