@@ -1,38 +1,27 @@
 ﻿using Application.DTOs.Quizzes;
-using Application.Interfaces.Repositories;
 using Application.Interfaces.Service;
+using Application.Interfaces.UnitOfWork;
 using Application.Interfaces.UserService;
 using Application.Results;
 using Domain.Entities;
 using Domain.Enums;
-using System;
-using static System.Net.Mime.MediaTypeNames;
-
 
 namespace Application.Services
 {
     public class QuizService : IQuizService
     {
-        private readonly IGenericRepositoryAsync<Quiz> _quizRepository;
-        private readonly IGenericRepositoryAsync<Question> _questionRepository;
-        private readonly IGenericRepositoryAsync<QuizAttempt> _quizAttemptRepository;
-        private readonly IGenericRepositoryAsync<QuizQuestion> _quizQuestionRepository;
-        private readonly IGenericRepositoryAsync<QuizAnswer> _quizAnswerRepository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IUserService _userService;
 
-        public QuizService(
-            IGenericRepositoryAsync<Quiz> quizRepository,
-            IGenericRepositoryAsync<Question> questionRepository,
-            IUserService userService)
+        public QuizService(IUnitOfWork unitOfWork,IUserService userService)
         {
-            _quizRepository = quizRepository;
-            _questionRepository = questionRepository;
+            _unitOfWork = unitOfWork;
             _userService = userService;
         }
 
         public async Task<Result<Guid>> CreateAsync(QuizRequest request)
         {
-            var questions = await _questionRepository.GetAllAsync(
+            var questions = await _unitOfWork.Questions.GetAllAsync(
                 x => request.QuestionIds.Contains(x.Id)
                      && x.TenantId == _userService.TenantId
                      && !x.IsDeleted
@@ -41,9 +30,7 @@ namespace Application.Services
             if (questions.Count != request.QuestionIds.Count)
             {
                 return Result<Guid>.Failure(
-                    new Error(
-                        "One or more questions are invalid.",
-                        ErrorType.NotFound));
+                    Errors.QuizError.InvalidQuestions);
             }
 
             var quiz = new Quiz
@@ -69,19 +56,21 @@ namespace Application.Services
                 })
                 .ToList();
 
-            await _quizRepository.AddAsync(quiz);
-            await _quizRepository.SaveChangesAsync();
+            await _unitOfWork.Quizzes.AddAsync(quiz);
+            await _unitOfWork.SaveChangesAsync();
 
             return Result<Guid>.Success(quiz.Id);
         }
 
-        public async Task<Result<IReadOnlyList<AvailableQuizResponseDto>>>  GetAvailableForStudentAsync()
+        public async Task<Result<IReadOnlyList<AvailableQuizResponseDto>>> GetAvailableForStudentAsync()
         {
             var studentId = _userService.UserId;
             var tenantId = _userService.TenantId;
 
-            var quizzes = await _quizRepository.GetAllAsync(
-                x => x.TenantId == tenantId && x.IsActive, x => x.QuizQuestions, x => x.Attempts);
+            var quizzes = await _unitOfWork.Quizzes.GetAllAsync(
+                x => x.TenantId == tenantId && x.IsActive,
+                x => x.QuizQuestions,
+                x => x.Attempts);
 
             var availableQuizzes = quizzes
                 .Where(quiz =>
@@ -104,9 +93,7 @@ namespace Application.Services
                     return new AvailableQuizResponseDto
                     {
                         Id = quiz.Id,
-
                         Title = quiz.Title,
-
                         Description = quiz.Description,
 
                         MaxAttempts = quiz.MaxAttempts,
@@ -122,7 +109,8 @@ namespace Application.Services
                 })
                 .ToList();
 
-            return Result<IReadOnlyList<AvailableQuizResponseDto>>.Success(availableQuizzes);
+            return Result<IReadOnlyList<AvailableQuizResponseDto>>
+                .Success(availableQuizzes);
         }
 
         public async Task<Result<StartQuizResponseDto>> StartQuizAsync(Guid quizId)
@@ -131,7 +119,7 @@ namespace Application.Services
             var tenantId = _userService.TenantId;
 
             // 1. Get quiz
-            var quiz = await _quizRepository.FirstOrDefaultAsync(
+            var quiz = await _unitOfWork.Quizzes.FirstOrDefaultAsync(
                 x => x.Id == quizId &&
                      x.TenantId == tenantId &&
                      x.IsActive,
@@ -140,11 +128,11 @@ namespace Application.Services
             if (quiz is null)
             {
                 return Result<StartQuizResponseDto>.Failure(
-                    new Error("Quiz not found or inactive.", ErrorType.NotFound));
+                    Errors.QuizError.NotFound);
             }
 
             // 2. Check attempts
-            var attemptsUsed = await _quizAttemptRepository.CountAsync(
+            var attemptsUsed = await _unitOfWork.QuizAttempts.CountAsync(
                 x => x.QuizId == quizId &&
                      x.StudentId == studentId &&
                      x.TenantId == tenantId);
@@ -153,9 +141,7 @@ namespace Application.Services
                 attemptsUsed >= quiz.MaxAttempts.Value)
             {
                 return Result<StartQuizResponseDto>.Failure(
-                    new Error(
-                        "Maximum attempts exceeded.",
-                        ErrorType.Conflict));
+                    Errors.QuizError.MaximumAttemptsExceeded);
             }
 
             // 3. Get questions
@@ -164,7 +150,7 @@ namespace Application.Services
                 .Select(x => x.QuestionId)
                 .ToList();
 
-            var questions = await _questionRepository.GetAllAsync(
+            var questions = await _unitOfWork.Questions.GetAllAsync(
                 x => questionIds.Contains(x.Id) &&
                      x.TenantId == tenantId &&
                      !x.IsDeleted &&
@@ -174,9 +160,7 @@ namespace Application.Services
             if (!questions.Any())
             {
                 return Result<StartQuizResponseDto>.Failure(
-                    new Error(
-                        "Quiz has no available questions.",
-                        ErrorType.Validation));
+                    Errors.QuizError.NoQuestions);
             }
 
             // 4. Create attempt
@@ -191,8 +175,8 @@ namespace Application.Services
                 StartedAt = DateTime.UtcNow
             };
 
-            await _quizAttemptRepository.AddAsync(attempt);
-            await _quizAttemptRepository.SaveChangesAsync();
+            await _unitOfWork.QuizAttempts.AddAsync(attempt);
+            await _unitOfWork.SaveChangesAsync();
 
             // 5. Map questions
             var response = new StartQuizResponseDto
@@ -234,7 +218,7 @@ namespace Application.Services
             var tenantId = _userService.TenantId;
 
             // 1. Get attempt
-            var attempt = await _quizAttemptRepository.FirstOrDefaultAsync(
+            var attempt = await _unitOfWork.QuizAttempts.FirstOrDefaultAsync(
                 x => x.Id == attemptId &&
                      x.StudentId == studentId &&
                      x.TenantId == tenantId,
@@ -243,29 +227,25 @@ namespace Application.Services
             if (attempt is null)
             {
                 return Result<SubmitQuizResponseDto>.Failure(
-                    new Error(
-                        "Attempt not found.",
-                        ErrorType.NotFound));
+                    Errors.QuizError.AttemptNotFound);
             }
 
             // 2. Check attempt status
             if (attempt.Status == AttemptStatus.Submitted)
             {
                 return Result<SubmitQuizResponseDto>.Failure(
-                    new Error(
-                        "This attempt has already been submitted.",
-                        ErrorType.Conflict));
+                    Errors.QuizError.AttemptAlreadySubmitted);
             }
 
             // 3. Get quiz questions
-            var quizQuestions = await _quizQuestionRepository.GetAllAsync(x => x.QuizId == attempt.QuizId);
+            var quizQuestions =
+                await _unitOfWork.QuizQuestions.GetAllAsync(
+                    x => x.QuizId == attempt.QuizId);
 
             if (!quizQuestions.Any())
             {
                 return Result<SubmitQuizResponseDto>.Failure(
-                    new Error(
-                        "Quiz has no questions.",
-                        ErrorType.Validation));
+                    Errors.QuizError.QuestionsNotFound);
             }
 
             var questionIds = quizQuestions
@@ -273,7 +253,7 @@ namespace Application.Services
                 .ToList();
 
             // 4. Get questions + choices
-            var questions = await _questionRepository.GetAllAsync(
+            var questions = await _unitOfWork.Questions.GetAllAsync(
                 x => questionIds.Contains(x.Id) &&
                      x.TenantId == tenantId &&
                      !x.IsDeleted,
@@ -286,22 +266,19 @@ namespace Application.Services
             if (invalidQuestion)
             {
                 return Result<SubmitQuizResponseDto>.Failure(
-                    new Error(
-                        "One or more questions do not belong to this quiz.",
-                        ErrorType.Validation));
+                    Errors.QuizError.InvalidQuestion);
             }
 
-            // 6. Prevent duplicate answers for the same question
+            // 6. Prevent duplicate answers
             var submittedQuestionIds = request.Answers
                 .Select(x => x.QuestionId)
                 .ToList();
 
-            if (submittedQuestionIds.Count != submittedQuestionIds.Distinct().Count())
+            if (submittedQuestionIds.Count !=
+                submittedQuestionIds.Distinct().Count())
             {
                 return Result<SubmitQuizResponseDto>.Failure(
-                    new Error(
-                        "A question cannot be answered more than once.",
-                        ErrorType.Validation));
+                    Errors.QuizError.DuplicateQuestionAnswer);
             }
 
             // 7. Validate submitted choices
@@ -317,9 +294,7 @@ namespace Application.Services
                 if (question is null)
                 {
                     return Result<SubmitQuizResponseDto>.Failure(
-                        new Error(
-                            "Question not found.",
-                            ErrorType.NotFound));
+                        Errors.QuizError.QuestionNotFound);
                 }
 
                 var choiceExists = question.Choices
@@ -328,9 +303,7 @@ namespace Application.Services
                 if (!choiceExists)
                 {
                     return Result<SubmitQuizResponseDto>.Failure(
-                        new Error(
-                            "Selected choice does not belong to the question.",
-                            ErrorType.Validation));
+                        Errors.QuizError.InvalidSelectedChoice);
                 }
             }
 
@@ -387,14 +360,28 @@ namespace Application.Services
             attempt.Percentage = percentage;
             attempt.SubmittedAt = DateTime.UtcNow;
 
-            await _quizAttemptRepository.UpdateAsync(attempt);
+            try
+            {
+                await _unitOfWork.BeginTransactionAsync();
 
-            // 11. Save student answers
-            await _quizAnswerRepository.AddRangeAsync(answers);
+                await _unitOfWork.QuizAttempts.UpdateAsync(attempt);
 
-            // 12. Save changes
-            await _quizAttemptRepository.SaveChangesAsync();
+                // 11. Save student answers
+                await _unitOfWork.QuizAnswers.AddRangeAsync(answers);
 
+                // 12. Save changes
+                await _unitOfWork.SaveChangesAsync();
+
+                // 13. Commit transaction
+                await _unitOfWork.CommitTransactionAsync();
+            }
+            catch
+            {
+                // Rollback if anything fails
+                await _unitOfWork.RollbackTransactionAsync();
+
+                throw;
+            }
             // 13. Return result
             return Result<SubmitQuizResponseDto>.Success(
                 new SubmitQuizResponseDto
@@ -408,8 +395,3 @@ namespace Application.Services
         }
     }
 }
-
-
-
-
-

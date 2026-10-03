@@ -15,17 +15,7 @@ namespace Application.Results
                     "Question was not found.",
                     ErrorType.NotFound);
 
-            public static Error Locked =>
-                new(
-                    "Question cannot be modified because it is locked.",
-                    ErrorType.Conflict);
-
-            public static Error InvalidChoices =>
-                new(
-                    "Question must have at least two choices and exactly one correct choice.",
-                    ErrorType.Validation);
         }
-
         public static class QuizError
         {
             public static Error NotFound =>
@@ -42,19 +32,52 @@ namespace Application.Results
                 new(
                     "Quiz must contain at least one question.",
                     ErrorType.Validation);
-        }
 
-        public static class AttemptError
-        {
-            public static Error NotFound =>
+            public static Error InvalidQuestions =>
                 new(
-                    "Attempt was not found.",
+                    "One or more questions are invalid.",
                     ErrorType.NotFound);
 
-            public static Error AlreadySubmitted =>
+            public static Error MaximumAttemptsExceeded =>
+                new(
+                    "Maximum attempts exceeded.",
+                    ErrorType.Conflict);
+
+            public static Error AttemptNotFound =>
+                new(
+                    "Attempt not found.",
+                    ErrorType.NotFound);
+
+            public static Error AttemptAlreadySubmitted =>
                 new(
                     "This attempt has already been submitted.",
                     ErrorType.Conflict);
+
+            public static Error QuestionsNotFound =>
+                new(
+                    "Quiz has no questions.",
+                    ErrorType.Validation);
+
+            public static Error InvalidQuestion =>
+                new(
+                    "One or more questions do not belong to this quiz.",
+                    ErrorType.Validation);
+
+            public static Error DuplicateQuestionAnswer =>
+                new(
+                    "A question cannot be answered more than once.",
+                    ErrorType.Validation);
+
+            public static Error QuestionNotFound =>
+                new(
+                    "Question not found.",
+                    ErrorType.NotFound);
+
+            public static Error InvalidSelectedChoice =>
+                new(
+                    "Selected choice does not belong to the question.",
+                    ErrorType.Validation);
         }
+
     }
 }

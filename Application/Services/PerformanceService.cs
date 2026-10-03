@@ -1,44 +1,27 @@
 ﻿using Application.DTOs.Performance;
-using Application.Interfaces.Repositories;
 using Application.Interfaces.Service;
+using Application.Interfaces.UnitOfWork;
 using Application.Interfaces.UserService;
 using Application.Results;
-using Domain.Entities;
 using Domain.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Application.Services
 {
     public class PerformanceService : IPerformanceService
     {
-        private readonly IGenericRepositoryAsync<User> _userRepository;
-        private readonly IGenericRepositoryAsync<QuizAttempt> _quizAttemptRepository;
-        private readonly IGenericRepositoryAsync<Question> _questionRepository;
-        private readonly IGenericRepositoryAsync<QuizAnswer> _quizAnswerRepository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IUserService _userService;
 
-        public PerformanceService(
-            IGenericRepositoryAsync<User> userRepository,
-            IGenericRepositoryAsync<QuizAttempt> quizAttemptRepository,
-            IGenericRepositoryAsync<Question> questionRepository,
-            IGenericRepositoryAsync<QuizAnswer> quizAnswerRepository,
-            IUserService userService)
+        public PerformanceService(IUnitOfWork unitOfWork,IUserService userService)
         {
-            _userRepository = userRepository;
-            _quizAttemptRepository = quizAttemptRepository;
-            _questionRepository = questionRepository;
-            _quizAnswerRepository = quizAnswerRepository;
+            _unitOfWork = unitOfWork;
             _userService = userService;
         }
         public async Task<Result<StudentPerformanceResponseDto>> GetStudentPerformanceAsync(Guid studentId)
         {
             var tenantId = _userService.TenantId;
 
-            var student = await _userRepository.FirstOrDefaultAsync(
+            var student = await _unitOfWork.Users.FirstOrDefaultAsync(
                 x => x.Id == studentId &&  x.TenantId == tenantId);
 
             if (student is null)
@@ -49,7 +32,7 @@ namespace Application.Services
                         ErrorType.NotFound));
             }
 
-            var attempts = await _quizAttemptRepository.GetAllAsync(
+            var attempts = await _unitOfWork.QuizAttempts.GetAllAsync(
                 x => x.StudentId == studentId &&
                      x.TenantId == tenantId);
 
@@ -81,7 +64,7 @@ namespace Application.Services
         {
             var tenantId = _userService.TenantId;
 
-            var question = await _questionRepository.FirstOrDefaultAsync(
+            var question = await _unitOfWork.Questions.FirstOrDefaultAsync(
                 x => x.Id == questionId && x.TenantId == tenantId && !x.IsDeleted);
 
             if (question is null)
@@ -92,7 +75,7 @@ namespace Application.Services
                         ErrorType.NotFound));
             }
 
-            var answers = await _quizAnswerRepository.GetAllAsync(
+            var answers = await _unitOfWork.QuizAnswers.GetAllAsync(
                 x => x.QuestionId == questionId &&
                      x.Attempt.TenantId == tenantId &&
                      x.Attempt.Status == AttemptStatus.Submitted);
@@ -123,7 +106,7 @@ namespace Application.Services
         {
             var tenantId = _userService.TenantId;
 
-            var question = await _questionRepository.FirstOrDefaultAsync(
+            var question = await _unitOfWork.Questions.FirstOrDefaultAsync(
                 x => x.Id == questionId &&
                      x.TenantId == tenantId &&
                      !x.IsDeleted);
@@ -136,7 +119,7 @@ namespace Application.Services
                         ErrorType.NotFound));
             }
 
-            var answers = await _quizAnswerRepository.GetAllAsync(
+            var answers = await _unitOfWork.QuizAnswers.GetAllAsync(
                 x => x.QuestionId == questionId &&
                      x.Attempt.TenantId == tenantId &&
                      x.Attempt.Status == AttemptStatus.Submitted,
@@ -147,7 +130,7 @@ namespace Application.Services
                 .Distinct()
                 .ToList();
 
-            var students = await _userRepository.GetAllAsync(
+            var students = await _unitOfWork.Users.GetAllAsync(
                 x => studentIds.Contains(x.Id) &&
                      x.TenantId == tenantId);
 

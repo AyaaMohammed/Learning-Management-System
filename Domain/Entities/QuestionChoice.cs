@@ -18,8 +18,6 @@ namespace Domain.Entities
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public DateTime? UpdatedAt { get; set; }
-
         public Question Question { get; set; } = null!;
 
         public ICollection<QuizAnswer> QuizAnswers { get; set; } = new List<QuizAnswer>();

@@ -1,6 +1,6 @@
 ﻿using Application.DTOs.Questions;
-using Application.Interfaces.Repositories;
 using Application.Interfaces.Service;
+using Application.Interfaces.UnitOfWork;
 using Application.Interfaces.UserService;
 using Application.Results;
 using Domain.Entities;
@@ -9,17 +9,12 @@ namespace Application.Services
 {
     public class QuestionService : IQuestionService
     {
-        private readonly IGenericRepositoryAsync<Question> _questionRepository;
-        private readonly IGenericRepositoryAsync<QuestionChoice> _choiceRepository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IUserService _userService;
 
-        public QuestionService(
-            IGenericRepositoryAsync<Question> questionRepository,
-            IGenericRepositoryAsync<QuestionChoice> choiceRepository,
-            IUserService userService)
+        public QuestionService(IUnitOfWork unitOfWork,IUserService userService)
         {
-            _questionRepository = questionRepository;
-            _choiceRepository = choiceRepository;
+            _unitOfWork = unitOfWork;
             _userService = userService;
         }
 
@@ -28,15 +23,15 @@ namespace Application.Services
         {
             var question = CreateQuestion(request);
 
-            await _questionRepository.AddAsync(question);
-            await _questionRepository.SaveChangesAsync();
+            await _unitOfWork.Questions.AddAsync(question);
+            await _unitOfWork.SaveChangesAsync();
 
             return Result<Guid>.Success(question.Id);
         }
 
         public async Task<Result<Guid>> UpdateAsync(Guid id,QuestionRequest request)
         {
-            var oldQuestion = await _questionRepository.FirstOrDefaultAsync(
+            var oldQuestion = await _unitOfWork.Questions.FirstOrDefaultAsync(
                 x => x.Id == id &&
                      x.TenantId == _userService.TenantId &&
                      !x.IsDeleted &&
@@ -44,28 +39,27 @@ namespace Application.Services
 
             if (oldQuestion is null)
             {
-                return Result<Guid>.Failure(
-                    new Error("Question not found.", ErrorType.NotFound));
+                return Result<Guid>.Failure(Errors.QuestionError.NotFound);
             }
 
             // Lock old version
             oldQuestion.IsLocked = true;
             oldQuestion.UpdatedAt = DateTime.UtcNow;
 
-            await _questionRepository.UpdateAsync(oldQuestion);
+            await _unitOfWork.Questions.UpdateAsync(oldQuestion);
 
             // Create new version
             var newQuestion = CreateQuestion(request,oldQuestion.Id);
 
-            await _questionRepository.AddAsync(newQuestion);
+            await _unitOfWork.Questions.AddAsync(newQuestion);
 
-            await _questionRepository.SaveChangesAsync();
+            await _unitOfWork.SaveChangesAsync();
 
             return Result<Guid>.Success(newQuestion.Id);
         }
         public async Task<Result<IReadOnlyList<QuestionResponseDto>>> GetAllAsync()
         {
-            var questions = await _questionRepository.GetAllAsync(
+            var questions = await _unitOfWork.Questions.GetAllAsync(
                 x => x.TenantId == _userService.TenantId && !x.IsDeleted,
                 x => x.Choices);
 
@@ -86,15 +80,14 @@ namespace Application.Services
         }
         public async Task<Result<QuestionResponseDto>> GetByIdAsync(Guid id)
         {
-            var question = await _questionRepository.FirstOrDefaultAsync(
+            var question = await _unitOfWork.Questions.FirstOrDefaultAsync(
                 x => x.Id == id &&
                      x.TenantId == _userService.TenantId && !x.IsDeleted,
                 x => x.Choices);
 
             if (question is null)
             {
-                return Result<QuestionResponseDto>.Failure(
-                    new Error("Question not found.", ErrorType.NotFound));
+                return Result<QuestionResponseDto>.Failure(Errors.QuestionError.NotFound);
             }
 
             var response = new QuestionResponseDto
@@ -117,20 +110,19 @@ namespace Application.Services
         }
         public async Task<Result<bool>> DeleteAsync(Guid id)
         {
-            var question = await _questionRepository.FirstOrDefaultAsync(
+            var question = await _unitOfWork.Questions.FirstOrDefaultAsync(
                 x => x.Id == id && x.TenantId == _userService.TenantId && !x.IsDeleted && !x.IsLocked);
 
             if (question is null)
             {
-                return Result<bool>.Failure(
-                    new Error("Question not found.", ErrorType.NotFound));
+                return Result<bool>.Failure(Errors.QuestionError.NotFound);
             }
 
             question.IsDeleted = true;
             question.UpdatedAt = DateTime.UtcNow;
 
-            await _questionRepository.UpdateAsync(question);
-            await _questionRepository.SaveChangesAsync();
+            await _unitOfWork.Questions.UpdateAsync(question);
+            await _unitOfWork.SaveChangesAsync();
 
             return Result<bool>.Success(true);
         }
@@ -165,8 +157,7 @@ namespace Application.Services
                     Text = choiceRequest.Text,
                     IsCorrect = choiceRequest.IsCorrect,
 
-                    CreatedAt = now,
-                    UpdatedAt = null
+                    CreatedAt = now
                 })
                 .ToList();
 

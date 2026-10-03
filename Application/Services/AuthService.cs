@@ -1,25 +1,26 @@
 ﻿using Application.DTOs.Auth;
-using Application.Interfaces.Repositories;
 using Application.Interfaces.Service;
+using Application.Interfaces.UnitOfWork;
 using Application.Results;
 using Domain.Common;
-using Domain.Entities;
+
 
 namespace Application.Services
 {
     public class AuthService : IAuthService
     {
-        private readonly IGenericRepositoryAsync<User> _userRepository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly ITokenService _tokenService;
-        public AuthService(IGenericRepositoryAsync<User> userRepository, ITokenService tokenService)
+
+        public AuthService(IUnitOfWork unitOfWork,ITokenService tokenService)
         {
-            _userRepository = userRepository;
+            _unitOfWork = unitOfWork;
             _tokenService = tokenService;
         }
 
         public async Task<Result<TokenResponse>> AuthenticateAsync(string userName,string password)
         {
-            var user = await _userRepository.FirstOrDefaultAsync(x => x.Name == userName);
+            var user = await _unitOfWork.Users.FirstOrDefaultAsync(x => x.Name == userName);
             if (user is null)
             {
                 return Result<TokenResponse>.Failure(

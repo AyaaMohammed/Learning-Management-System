@@ -51,6 +51,8 @@ namespace API
 
             builder.Services.AddApiServices(builder.Configuration);
 
+            builder.Services.AddJwtAuthentication(builder.Configuration);
+
             builder.Host.UseSerilog((context, configuration) =>
                         configuration
                             .ReadFrom.Configuration(context.Configuration)
@@ -58,30 +60,6 @@ namespace API
 
            builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
            builder.Services.AddProblemDetails();
-
-var jwtSettings = builder.Configuration
-    .GetSection("JwtSettings");
-
-            var secretKey = jwtSettings["SecretKey"]!;
-
-            builder.Services
-                .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer(options =>
-                {
-                    options.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        ValidateIssuer = true,
-                        ValidateAudience = true,
-                        ValidateLifetime = true,
-                        ValidateIssuerSigningKey = true,
-
-                        ValidIssuer = jwtSettings["Issuer"],
-                        ValidAudience = jwtSettings["Audience"],
-
-                        IssuerSigningKey = new SymmetricSecurityKey(
-                            Encoding.UTF8.GetBytes(secretKey))
-                    };
-                });
 
             var app = builder.Build();
 
